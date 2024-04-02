@@ -1,7 +1,6 @@
 #ifndef WIN_API_LAB_2_ARRAY_FUNCTIONS_H
 #define WIN_API_LAB_2_ARRAY_FUNCTIONS_H
 
-#include <vector> // for vectors
 #include <random> // for random number generation
 
 void FillArray(int* arr, int size);
