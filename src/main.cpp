@@ -23,38 +23,7 @@ DWORD WINAPI ThreadFuncQuick(LPVOID lpParam) {
     ExitThread(0);
 }
 
-int main() {
-    int* baseArr = (int*)calloc(ARRAY_SIZE, sizeof(int)); // create array with N elements
-    FillArray(baseArr, ARRAY_SIZE); // fill array with random numbers
-
-    int* arrForQSort = (int*)calloc(ARRAY_SIZE, sizeof(int));
-    arrForQSort = ArrCpy(baseArr, arrForQSort, ARRAY_SIZE);
-    int* arrForHeapSort = (int*)calloc(ARRAY_SIZE, sizeof(int));
-    arrForHeapSort = ArrCpy(baseArr, arrForHeapSort, ARRAY_SIZE);
-
-    ArrType qSortArr{}, hSortArr{};
-    qSortArr.arr = arrForQSort;
-    hSortArr.arr = arrForHeapSort;
-
-    /* HeapSort(arrForHeapSort, ARRAY_SIZE);
-     QuickSort(arrForQSort, 0, ARRAY_SIZE - 1);
-
-     for (auto* i = arrForHeapSort; i - arrForHeapSort < ARRAY_SIZE; i++) {
-         cout << *i << "\t";
-     }*/
-
-    // Создание потоков
-    HANDLE hThreadHeap = CreateThread(NULL, 0, &ThreadFuncHeap, (LPVOID)(&qSortArr), CREATE_SUSPENDED, NULL);
-    HANDLE hThreadQuick = CreateThread(NULL, 0, &ThreadFuncQuick, (LPVOID)(&hSortArr), CREATE_SUSPENDED, NULL);
-
-    ResumeThread(hThreadQuick);
-    ResumeThread(hThreadHeap);
-
-    // Дожидаемся завершения
-    WaitForSingleObject(hThreadQuick, INFINITE);
-    WaitForSingleObject(hThreadHeap, INFINITE);
-
-
+void PrintTimes(HANDLE hThreadHeap, HANDLE hThreadQuick) {
     // Получение временных характеристик
     FILETIME heapCreateFTime, heapExitFTime, quickCreateFTime, quickExitFTime;
     FILETIME heapKernelFTime, heapUserFTime, quickKernelFTime, quickUserFTime;
@@ -98,13 +67,51 @@ int main() {
     cout << "Function with quick sorting operating time in user mode:" << endl;
     cout << "  Seconds: " << quickUserFTime.dwLowDateTime / 10000000 << endl;
     cout << "  Milliseconds: " << quickUserFTime.dwLowDateTime % 10000000 / 1000 << endl << endl;
+}
 
-    CloseHandle(hThreadHeap); // закрываем дескриптор потока
-    CloseHandle(hThreadQuick); // закрываем дескриптор потока
+int main() {
+    int* baseArr = (int*)calloc(ARRAY_SIZE, sizeof(int)); // create array with N elements
+//    FillArray(baseArr, ARRAY_SIZE); // fill array with random numbers
+    FILE *fp;
+//    fp = fopen("C:\\Programming\\OSLabs\\WIN_API_Lab_2\\resources\\data.txt", "w"); // open file for writing
+    fp = fopen("C:\\Programming\\OSLabs\\WIN_API_Lab_2\\resources\\data.txt", "r"); // open file for reading
+    for (int i = 0; i < ARRAY_SIZE; i++) {
+//        fprintf(fp, "%d\n", baseArr[i]); // write test set of numbers to file
+        fscanf(fp, "%d", &baseArr[i]);
+    }
+    int* arrForQSort = (int*)calloc(ARRAY_SIZE, sizeof(int));
+    arrForQSort = ArrCpy(baseArr, arrForQSort, ARRAY_SIZE);
+    int* arrForHeapSort = (int*)calloc(ARRAY_SIZE, sizeof(int));
+    arrForHeapSort = ArrCpy(baseArr, arrForHeapSort, ARRAY_SIZE);
 
-    // for (auto* i = arrForHeapSort; i - arrForHeapSort < ARRAY_SIZE; i++) {
-    //     cout << *i << "\t";
-    // }
+    ArrType qSortArr{}, hSortArr{};
+    qSortArr.arr = arrForQSort;
+    hSortArr.arr = arrForHeapSort;
+
+    // Создание потоков
+    HANDLE hThreadHeap = CreateThread(NULL, 0, &ThreadFuncHeap, (LPVOID)(&qSortArr), CREATE_SUSPENDED, NULL);
+    HANDLE hThreadQuick = CreateThread(NULL, 0, &ThreadFuncQuick, (LPVOID)(&hSortArr), CREATE_SUSPENDED, NULL);
+
+    // Set up different priority of threads
+    SetThreadPriority(hThreadHeap, 0);
+    SetThreadPriority(hThreadQuick, 20);
+
+    // Block dynamic priority change for threads
+    SetThreadPriorityBoost(hThreadHeap, TRUE);
+    SetThreadPriorityBoost(hThreadQuick, TRUE);
+
+    // Start threads
+    ResumeThread(hThreadQuick);
+    ResumeThread(hThreadHeap);
+
+    // Waiting for threads to finish
+    WaitForSingleObject(hThreadQuick, INFINITE);
+    WaitForSingleObject(hThreadHeap, INFINITE);
+
+    PrintTimes(hThreadHeap, hThreadQuick); // prints times for each thread
+
+    CloseHandle(hThreadHeap); // Close thread heap handle
+    CloseHandle(hThreadQuick); // Close thread quick handle
 
     free(baseArr);
     free(arrForQSort);

@@ -5,7 +5,7 @@ using namespace std;
 void FillArray(int* arr, int size) {
     random_device rd;
     mt19937 gen(rd());
-    uniform_int_distribution<int> dist(0, 1000);
+    uniform_int_distribution<int> dist(0, 100000);
 
     for (int* i = arr; i - arr < size; i++) {
         *i = dist(gen);
